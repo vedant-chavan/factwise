@@ -45,15 +45,35 @@ def get_optional_str(data, field, max_length):
     return value
 
 
-def get_id(data, field):
-    """Return an id field as an int. Accepts 5 or "5"."""
-    value = data.get(field)
-    if value is None:
-        raise ValidationError(f"'{field}' is required")
+def to_id(value, field):
+    """Convert one value to an int id. Accepts 5 or "5"."""
     if isinstance(value, (bool, float)):
         raise ValidationError(f"'{field}' must be a valid id")
-
     try:
         return int(value)
     except (ValueError, TypeError):
         raise ValidationError(f"'{field}' must be a valid id")
+
+
+def get_id(data, field):
+    """Return a required id field as an int."""
+    value = data.get(field)
+    if value is None:
+        raise ValidationError(f"'{field}' is required")
+    return to_id(value, field)
+
+
+def get_id_list(data, field, max_items):
+    """Return a non-empty list of ids (duplicates removed), with at most max_items ids."""
+    values = data.get(field)
+    if not isinstance(values, list) or len(values) == 0:
+        raise ValidationError(f"'{field}' must be a non-empty list of ids")
+    if len(values) > max_items:
+        raise ValidationError(f"'{field}' can contain at most {max_items} ids")
+
+    ids = []
+    for value in values:
+        user_id = to_id(value, field)
+        if user_id not in ids:
+            ids.append(user_id)
+    return ids
